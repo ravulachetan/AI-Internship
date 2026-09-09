@@ -19,6 +19,8 @@ class Answer(BaseModel):
     answer: str
     sources: list[str]
     confidence: float
+    tokens_used: int
+    cost_usd: float
 
 
 @app.get("/")
@@ -41,9 +43,19 @@ def ask(q: Question):
             messages=messages,
             response_format=Answer,
         )
-        return completion.choices[0].message.parsed
+        parsed = completion.choices[0].message.parsed
+        usage = completion.usage
+        parsed.tokens_used = usage.total_tokens if usage else 0
+        parsed.cost_usd = 0.0
+        return parsed
     except Exception:
-        return Answer(answer="Something went wrong.", sources=[], confidence=0.0)
+        return Answer(
+            answer="Something went wrong.",
+            sources=[],
+            confidence=0.0,
+            tokens_used=0,
+            cost_usd=0.0,
+        )
 
 
 @app.post("/ask/stream")
